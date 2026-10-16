@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; media-src 'self' blob: mediastream:; style-src 'self' 'unsafe-inline'; font-src 'self'">
-  <title>VidRecorder OS</title>
+  <title>CaptLY</title>
   <link rel="stylesheet" href="themes.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
-    <div class="brand"><span class="dot"></span><b>VidRecorder</b><small>OS</small></div>
-    <div id="themes"></div>
+    <div class="brand"><img class="logo" src="logo.png" alt=""><b>CaptLY</b><span class="dot"></span></div>
+    <div class="head-right"><button class="donate" id="donateBtn" title="Apoyar el proyecto">💜 Apoyar</button><div id="themes"></div></div>
   </header>
 
   <main>
@@ -78,6 +78,7 @@
 
   <div id="toasts"></div>
   <script src="themes.js"></script>
+  <script src="support.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

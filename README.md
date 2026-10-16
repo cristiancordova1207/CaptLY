@@ -1,8 +1,8 @@
-# VidRecorder OS
+# CaptLY
 
 Grabador de pantalla para Windows que funciona por tomas: un botón **guarda** lo grabado hasta ese momento y otro **borra** todo lo que no has guardado, y la grabación sigue.
 
-**Descarga:** [Releases](https://github.com/cristiancordova1207/VidRecorder-OS/releases/latest) → `VidRecorder-OS-Setup-x.y.z.exe`
+**Descarga:** [Releases](https://github.com/cristiancordova1207/CaptLY/releases/latest) → `CaptLY-Setup-x.y.z.exe`
 
 ## Cómo se usa
 - `F9` empieza y detiene la grabación; `F10` (o el botón ⏸) la pausa y la reanuda.
@@ -32,3 +32,7 @@ npm start
 npm test         # prueba la lógica de tomas
 npm run dist     # instalador en dist/
 ```
+
+## Apoyo y estadísticas
+- Botón **💜 Apoyar** y una ventana al abrir para donar la cantidad que quieras (Stripe, desde la web de Fluxy).
+- Al abrirse avisa de forma anónima a `fluxy-8yg.pages.dev` (instalación o apertura, versión, Windows y un id aleatorio de la instalación) para las estadísticas de descargas por país. No envía nada personal.

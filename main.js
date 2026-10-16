@@ -1,4 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog, desktopCapturer, screen, shell } = require('electron');
+const crypto = require('crypto');
+const os = require('os');
 const path = require('path');
 const fs = require('fs');
 const net = require('net');
@@ -12,12 +14,31 @@ const resource = (...p) => (app.isPackaged ? path.join(process.resourcesPath, ..
 const HELPER = () => resource('helper', 'VrHelper.exe');
 const send = (ch, data) => win && !win.isDestroyed() && win.webContents.send(ch, data);
 
+// Web de Fluxy: descargas, donaciones y estadísticas anónimas.
+const SITE = 'https://fluxy-8yg.pages.dev';
+const APP_ID = 'captly';
+
 function loadSettings() {
+  // VidRecorder OS pasó a llamarse CaptLY: se traen sus ajustes la primera vez
+  const old = path.join(app.getPath('appData'), 'VidRecorder OS', 'settings.json');
+  if (!fs.existsSync(settingsFile()) && fs.existsSync(old)) { fs.mkdirSync(path.dirname(settingsFile()), { recursive: true }); fs.copyFileSync(old, settingsFile()); }
   try { settings = JSON.parse(fs.readFileSync(settingsFile(), 'utf8')); } catch { settings = {}; }
-  settings.folder ??= path.join(app.getPath('videos'), 'VidRecorder');
+  settings.folder ??= path.join(app.getPath('videos'), 'CaptLY');
   fs.mkdirSync(settings.folder, { recursive: true });
 }
 const saveSettings = () => fs.writeFileSync(settingsFile(), JSON.stringify(settings, null, 2));
+
+// Aviso anónimo para las estadísticas (instalación la primera vez, apertura las siguientes). Sin datos personales:
+// un identificador aleatorio de esta instalación, la versión y Windows; el país lo pone Cloudflare.
+function ping() {
+  const kind = settings.installId ? 'open' : 'install';
+  settings.installId ??= crypto.randomUUID();
+  saveSettings();
+  fetch(SITE + '/api/event', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ app: APP_ID, kind, version: app.getVersion(), os: `Windows ${os.release()}`, install_id: settings.installId }),
+  }).catch(() => {});
+}
 
 // ---------- ffmpeg y codificador ----------
 function findFfmpeg() {
@@ -71,7 +92,7 @@ function listWindows() {
   try {
     return execFileSync(HELPER(), ['windows'], { encoding: 'utf8', windowsHide: true })
       .split(/\r?\n/).filter(Boolean).map((l) => JSON.parse(l))
-      .filter((w) => w.pid !== process.pid && !/^(VidRecorder OS|Program Manager)$/.test(w.title));
+      .filter((w) => w.pid !== process.pid && !/^(CaptLY|Program Manager)$/.test(w.title));
   } catch { return []; }
 }
 
@@ -226,6 +247,7 @@ const handlers = {
   'rec:stop': () => stopRecording(),
   'rec:mark': (keep) => mark(keep),
   'rec:pause': () => togglePause(),
+  'donate:open': () => shell.openExternal(`${SITE}/donar?app=${APP_ID}`),
   'folder:pick': async () => {
     const r = await dialog.showOpenDialog(win, { properties: ['openDirectory', 'createDirectory'], defaultPath: settings.folder });
     if (r.canceled) return null;
@@ -242,9 +264,10 @@ for (const [ch, fn] of Object.entries(handlers)) ipcMain.handle(ch, (_e, ...a) =
 
 app.whenReady().then(() => {
   loadSettings();
+  ping();
   startHooks();
   win = new BrowserWindow({
-    width: 1100, height: 800, minWidth: 900, minHeight: 640, backgroundColor: '#121016', title: 'VidRecorder OS', autoHideMenuBar: true,
+    width: 1100, height: 800, minWidth: 900, minHeight: 640, backgroundColor: '#121016', title: 'CaptLY', autoHideMenuBar: true,
     icon: path.join(__dirname, 'build', 'icon.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, backgroundThrottling: false },
   });

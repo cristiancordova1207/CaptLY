@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('api', {
   mark: call('rec:mark'),
   pause: call('rec:pause'),
   pickFolder: call('folder:pick'),
+  donate: call('donate:open'),
   openFolder: call('folder:open'),
   onInput: on('input'),
   onTime: on('rec-time'),

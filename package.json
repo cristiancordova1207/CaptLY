@@ -1,14 +1,14 @@
 {
-  "name": "vidrecorder-os",
-  "productName": "VidRecorder OS",
-  "version": "1.1.0",
+  "name": "captly",
+  "productName": "CaptLY",
+  "version": "1.2.0",
   "main": "main.js",
   "private": true,
   "devDependencies": {
     "electron": "^44.7.2",
     "electron-builder": "^26.15.3"
   },
-  "description": "Grabador de pantalla y aplicaciones con tomas: un botón guarda lo grabado y otro borra lo no guardado",
+  "description": "CaptLY: graba tu pantalla o una app por tomas (un botón guarda, otro borra lo no guardado)",
   "author": "cristiancordova1207",
   "license": "MIT",
   "scripts": {
@@ -19,11 +19,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/cristiancordova1207/VidRecorder-OS.git"
+    "url": "https://github.com/cristiancordova1207/CaptLY.git"
   },
   "build": {
     "appId": "com.cristiancordova.vidrecorder",
-    "productName": "VidRecorder OS",
+    "productName": "CaptLY",
     "files": [
       "main.js",
       "preload.js",
@@ -49,8 +49,8 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "shortcutName": "VidRecorder OS",
-      "artifactName": "VidRecorder-OS-Setup-${version}.${ext}"
+      "shortcutName": "CaptLY",
+      "artifactName": "CaptLY-Setup-${version}.${ext}"
     }
   }
 }

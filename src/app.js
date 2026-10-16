@@ -200,6 +200,8 @@ api.onNotice((m) => toast(m, true));
   $$('#fps button').forEach((b) => b.classList.toggle('on', b.dataset.v === String(S.fps)));
   renderKeys();
   await loadSources();
+  $('#donateBtn').onclick = () => api.donate();
+  Support.show({ name: 'CaptLY', logo: 'logo.png', onDonate: () => api.donate() });
   const tools = await api.getTools();
   if (!tools.ffmpeg) toast('Falta ffmpeg. Instálalo con: winget install Gyan.FFmpeg', true);
 })();
