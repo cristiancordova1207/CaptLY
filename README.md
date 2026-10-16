@@ -5,19 +5,20 @@ Grabador de pantalla para Windows que funciona por tomas: un botón **guarda** l
 **Descarga:** [Releases](https://github.com/cristiancordova1207/VidRecorder-OS/releases/latest) → `VidRecorder-OS-Setup-x.y.z.exe`
 
 ## Cómo se usa
-- `F9` empieza y detiene la grabación.
+- `F9` empieza y detiene la grabación; `F10` (o el botón ⏸) la pausa y la reanuda.
 - **Ratón 4** guarda lo grabado hasta ahí.
 - **Ratón 5** borra lo que no has guardado y sigues grabando.
 - Los atajos se cambian con un clic: pulsa la tecla o el botón del ratón que quieras. Funcionan aunque estés dentro de un juego y no bloquean la tecla.
 
 ## Opciones
-- **Qué grabar:** una pantalla o una aplicación.
+- **Qué grabar:** una pantalla o una aplicación (si la ventana está minimizada, se restaura sola).
 - **Sonido:** nada, el escritorio o solo el de la aplicación elegida. El micrófono se activa aparte.
 - **FPS:** 30, 60, 120, 144, 165 o 240.
 - **Vista previa:** se puede apagar para ganar rendimiento.
+- **Temas:** 10 temas de color.
 
 ## Cómo funciona
-- **Vídeo:** ffmpeg con `ddagrab` para la pantalla y `gfxcapture` para las ventanas, codificado por hardware (AMD AMF, NVIDIA NVENC o Intel QSV; si no hay ninguno, `libx264`).
+- **Vídeo:** ffmpeg con `ddagrab` para la pantalla y `gfxcapture` para las ventanas, codificado por hardware a calidad constante, como OBS con CQP 15 y el preajuste «Calidad» (AMD AMF, NVIDIA NVENC o Intel QSV; si no hay ninguno, `libx264` con CRF 18).
 - **Tomas:** se graba en trozos de 0,5 s y al detener se unen sin recodificar los trozos guardados, con su duración exacta.
 - **Ayudante nativo** (`helper/VrHelper.cs`): ganchos globales de ratón y teclado, y captura de audio con WASAPI, incluido el sonido de un solo proceso (`Process Loopback`, Windows 10 2004 o posterior).
 

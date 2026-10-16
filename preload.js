@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('api', {
   start: call('rec:start'),
   stop: call('rec:stop'),
   mark: call('rec:mark'),
+  pause: call('rec:pause'),
   pickFolder: call('folder:pick'),
   openFolder: call('folder:open'),
   onInput: on('input'),

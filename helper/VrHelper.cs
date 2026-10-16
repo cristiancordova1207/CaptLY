@@ -18,6 +18,7 @@ static class Program {
     if (a.Length == 0) return 1;
     Console.OutputEncoding = new UTF8Encoding(false);
     if (a[0] == "windows") return WinList.Run();
+    if (a[0] == "restore") return WinList.Restore(new IntPtr(long.Parse(a[1])));
     new Thread(() => { try { Console.In.ReadToEnd(); } catch { } Environment.Exit(0); }) { IsBackground = true }.Start();
     switch (a[0]) {
       case "hooks": return Hooks.Run();
@@ -84,6 +85,14 @@ static class WinList {
   [DllImport("user32.dll")] static extern int GetWindowLong(IntPtr h, int i);
   [DllImport("user32.dll")] static extern IntPtr GetWindow(IntPtr h, uint cmd);
   [DllImport("dwmapi.dll")] static extern int DwmGetWindowAttribute(IntPtr h, int a, out int v, int size);
+  [DllImport("user32.dll")] static extern bool IsIconic(IntPtr h);
+  [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr h, int cmd);
+
+  // Restaura una ventana minimizada sin quitarle el foco a la que estás usando.
+  public static int Restore(IntPtr h) {
+    if (IsIconic(h)) { ShowWindow(h, 4); Thread.Sleep(400); } // SW_SHOWNOACTIVATE
+    return 0;
+  }
 
   public static int Run() {
     int self = Process.GetCurrentProcess().Id;

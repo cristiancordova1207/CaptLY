@@ -4,7 +4,7 @@ const fmt = (t) => { t = Math.max(0, Math.floor(t || 0)); const h = Math.floor(t
 
 const DEFAULTS = {
   fps: 60, sound: 'desktop', mic: false, preview: true, theme: 'cozy-night', source: { type: 'screen', index: 0 },
-  keys: { commit: { kind: 'mouse', code: 4 }, discard: { kind: 'mouse', code: 5 }, toggle: { kind: 'key', code: 120 } },
+  keys: { commit: { kind: 'mouse', code: 4 }, discard: { kind: 'mouse', code: 5 }, toggle: { kind: 'key', code: 120 }, pause: { kind: 'key', code: 121 } },
 };
 let S, sources = { screens: [], windows: [] }, recording = false, busy = false, listening = null;
 
@@ -84,7 +84,7 @@ async function startPreview() {
   const s = currentSource();
   if (!s?.id) return;
   try {
-    previewStream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: s.id, maxFrameRate: 30, maxWidth: 1280, maxHeight: 720 } } });
+    previewStream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { mandatory: { chromeMediaSource: 'desktop', chromeMediaSourceId: s.id, maxFrameRate: 20, maxWidth: 960, maxHeight: 540 } } });
     v.srcObject = previewStream;
     v.play();
   } catch { $('#previewOff').hidden = false; $('#previewOff').textContent = 'No se puede previsualizar esta ventana'; }
@@ -100,12 +100,6 @@ $$('#sound button, #fps button').forEach((b) => (b.onclick = () => setSeg(b.pare
 $('#mic').onchange = (e) => save({ mic: e.target.checked });
 $('#pickFolder').onclick = async () => { const f = await api.pickFolder(); if (f) $('#folder').textContent = f; };
 $('#openFolder').onclick = () => api.openFolder();
-$$('.themes button').forEach((b) => (b.onclick = () => setTheme(b.dataset.theme, true)));
-function setTheme(t, persist) {
-  document.documentElement.dataset.theme = t;
-  $$('.themes button').forEach((b) => b.classList.toggle('on', b.dataset.theme === t));
-  if (persist) save({ theme: t });
-}
 
 function renderKeys() {
   $$('[data-key]').forEach((b) => { b.textContent = listening === b.dataset.key ? 'Pulsa tecla o botón…' : bindLabel(S.keys[b.dataset.key]); b.classList.toggle('listen', listening === b.dataset.key); });
@@ -130,6 +124,7 @@ async function toggleRec() {
   } catch (e) { toast(e.message.replace(/^.*Error: /, ''), true); }
 }
 $('#recBtn').onclick = toggleRec;
+$('#pauseBtn').onclick = () => recording && api.pause();
 
 function flash(id) { const k = $(id).parentElement; k.classList.remove('flash'); void k.offsetWidth; k.classList.add('flash'); }
 
@@ -147,6 +142,7 @@ api.onInput((ev) => {
   }
   if (same(b, S.keys.toggle)) return toggleRec();
   if (!recording) return;
+  if (same(b, S.keys.pause)) return api.pause();
   if (same(b, S.keys.commit)) api.mark(true);
   else if (same(b, S.keys.discard)) api.mark(false);
 });
@@ -155,14 +151,18 @@ api.onState((st) => {
   recording = !!st.recording;
   busy = !!st.busy;
   document.body.classList.toggle('recording', recording);
+  if (!recording) document.body.classList.remove('paused');
+  $('#pauseBtn').disabled = !recording;
   setOptionsEnabled(!recording && !busy);
   $('#recBtn').title = recording ? 'Detener' : 'Grabar';
   if (recording) { $('#timer').textContent = '00:00'; $('#info').textContent = `Grabando · ${S.fps} FPS · ${st.encoder}`; }
   if (busy) $('#info').textContent = 'Guardando el vídeo…';
 });
 api.onTime((t) => {
+  document.body.classList.toggle('paused', !!t.paused);
+  $('#pauseBtn').title = t.paused ? 'Reanudar' : 'Pausar';
   $('#timer').textContent = fmt(t.t);
-  $('#info').textContent = `Guardado ${fmt(t.saved)} · sin guardar ${fmt(t.pending)} · ${t.takes} ${t.takes === 1 ? 'toma' : 'tomas'}`;
+  $('#info').textContent = (t.paused ? '⏸ En pausa · ' : '') + `Guardado ${fmt(t.saved)} · sin guardar ${fmt(t.pending)} · ${t.takes} ${t.takes === 1 ? 'toma' : 'tomas'}`;
   const total = Math.max(1, t.saved + t.pending);
   $('#barSaved').style.width = (t.saved / total) * 100 + '%';
   $('#barPending').style.width = (t.pending / total) * 100 + '%';
@@ -173,7 +173,8 @@ api.onMark(({ keep }) => {
 });
 api.onDone((r) => {
   busy = false; recording = false;
-  document.body.classList.remove('recording');
+  document.body.classList.remove('recording', 'paused');
+  $('#pauseBtn').disabled = true;
   setOptionsEnabled(true);
   $('#barSaved').style.width = $('#barPending').style.width = '0';
   const box = $('#result');
@@ -191,7 +192,7 @@ api.onNotice((m) => toast(m, true));
 (async () => {
   const saved = await api.getSettings();
   S = { ...DEFAULTS, ...saved, keys: { ...DEFAULTS.keys, ...(saved.keys || {}) } };
-  setTheme(S.theme);
+  ThemePicker.mount($('#themes'), S.theme, (id) => save({ theme: id }));
   $('#folder').textContent = S.folder;
   $('#mic').checked = S.mic;
   $('#previewOn').checked = S.preview;

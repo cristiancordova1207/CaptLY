@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const net = require('net');
 const { spawn, execFileSync } = require('child_process');
-const { spans, keepSeg } = require('./takes');
+const { spans, keepSeg, pausedIn } = require('./takes');
 
 let win;
 let settings = {};
@@ -31,13 +31,15 @@ function findFfmpeg() {
   return cands.find((c) => c && fs.existsSync(c.trim()))?.trim() || null;
 }
 // Codificadores por hardware primero (AMD, NVIDIA, Intel); libx264 si no hay ninguno.
+// Calidad constante como en OBS (CQP 15, preajuste "Calidad"): nítido aunque haya mucho movimiento.
+const QP = '15';
 const ENCODERS = [
-  ['hevc_amf', (b, g) => ['-usage', 'lowlatency', '-quality', 'speed', '-rc', 'cbr', '-b:v', b, '-forced_idr', '1', '-g', g]],
-  ['hevc_nvenc', (b, g) => ['-preset', 'p1', '-tune', 'll', '-rc', 'cbr', '-b:v', b, '-forced-idr', '1', '-g', g]],
-  ['hevc_qsv', (b, g) => ['-preset', 'veryfast', '-b:v', b, '-forced_idr', '1', '-g', g]],
-  ['h264_amf', (b, g) => ['-usage', 'lowlatency', '-quality', 'speed', '-rc', 'cbr', '-b:v', b, '-forced_idr', '1', '-g', g]],
-  ['h264_nvenc', (b, g) => ['-preset', 'p1', '-tune', 'll', '-rc', 'cbr', '-b:v', b, '-forced-idr', '1', '-g', g]],
-  ['libx264', (b, g) => ['-preset', 'ultrafast', '-tune', 'zerolatency', '-b:v', b, '-g', g]],
+  ['hevc_amf', (g) => ['-usage', 'transcoding', '-quality', 'quality', '-rc', 'cqp', '-qp_i', QP, '-qp_p', QP, '-forced_idr', '1', '-g', g]],
+  ['hevc_nvenc', (g) => ['-preset', 'p5', '-tune', 'hq', '-rc', 'constqp', '-qp', QP, '-forced-idr', '1', '-g', g]],
+  ['hevc_qsv', (g) => ['-preset', 'medium', '-q', QP, '-forced_idr', '1', '-g', g]],
+  ['h264_amf', (g) => ['-usage', 'transcoding', '-quality', 'quality', '-rc', 'cqp', '-qp_i', QP, '-qp_p', QP, '-qp_b', QP, '-forced_idr', '1', '-g', g]],
+  ['h264_nvenc', (g) => ['-preset', 'p5', '-tune', 'hq', '-rc', 'constqp', '-qp', QP, '-forced-idr', '1', '-g', g]],
+  ['libx264', (g) => ['-preset', 'veryfast', '-crf', '18', '-g', g]],
 ];
 let tools = null;
 function detectTools() {
@@ -87,7 +89,6 @@ function startRecording(o) {
   const tmp = path.join(settings.folder, `.vr-${Date.now()}`);
   fs.mkdirSync(tmp, { recursive: true });
   const fps = o.fps;
-  const bitrate = `${Math.round(Math.min(80, Math.max(12, (o.width * o.height * fps) / 1e6 * 0.13)))}M`;
   const gop = String(Math.max(1, Math.round(fps * SEG)));
 
   const audio = [];
@@ -99,14 +100,16 @@ function startRecording(o) {
     ? `gfxcapture=hwnd=${o.source.hwnd}:max_framerate=${fps}:capture_cursor=1`
     : `ddagrab=output_idx=${o.source.index}:framerate=${fps}:dup_frames=0:draw_mouse=1`;
   if (tools.encoder === 'libx264') src += ',hwdownload,format=bgra';
+  // Windows no da imagen de una ventana minimizada: se restaura (sin quitarte el foco)
+  if (o.source.type === 'window') try { execFileSync(HELPER(), ['restore', String(o.source.hwnd)], { windowsHide: true }); } catch {}
 
-  const r = (rec = { tmp, stamp, marks: [], outTime: 0, outAt: Date.now(), helper: null, server: null, ff: null, stopping: false });
+  const r = (rec = { tmp, stamp, marks: [], pauses: [], outTime: 0, outAt: Date.now(), helper: null, server: null, ff: null, stopping: false });
   const launch = (pipeName) => {
     const args = ['-hide_banner', '-loglevel', 'error', '-progress', 'pipe:1', '-init_hw_device', 'd3d11va'];
     if (pipeName) args.push('-f', 's16le', '-ar', '48000', '-ac', '2', '-thread_queue_size', '8192', '-i', pipeName);
     args.push('-filter_complex', `${src}[v]`, '-map', '[v]');
     if (pipeName) args.push('-map', '0:a', '-c:a', 'aac', '-b:a', '192k');
-    args.push('-c:v', tools.encoder, ...tools.encArgs(bitrate, gop), '-force_key_frames', `expr:gte(t,n_forced*${SEG})`,
+    args.push('-c:v', tools.encoder, ...tools.encArgs(gop), '-force_key_frames', `expr:gte(t,n_forced*${SEG})`,
       '-f', 'segment', '-segment_time', String(SEG), '-segment_format', 'matroska', '-reset_timestamps', '1',
       '-segment_list', path.join(tmp, 'segs.csv'), '-segment_list_type', 'csv', path.join(tmp, 'seg%06d.mkv'));
     r.ff = spawn(tools.ffmpeg, args, { windowsHide: true });
@@ -117,6 +120,8 @@ function startRecording(o) {
       if (m) { r.outTime = +m.at(-1).split('=')[1] / 1e6; r.outAt = Date.now(); send('rec-time', recState()); }
     });
     r.ff.on('close', (code) => finish(r, code, err));
+    // si en unos segundos no llega ni un fotograma, se avisa en vez de quedarse colgado
+    setTimeout(() => { if (rec === r && !r.outTime && !r.stopping) { r.noFrames = true; stopRecording(); } }, 7000);
   };
   if (audio.length) {
     r.helper = spawn(HELPER(), ['audio', ...audio], { windowsHide: true });
@@ -130,8 +135,17 @@ function startRecording(o) {
 const nowT = () => (rec ? rec.outTime + Math.min(1, (Date.now() - rec.outAt) / 1000) : 0);
 const lastMark = () => (rec.marks.length ? rec.marks.at(-1).t : 0);
 function recState() {
-  const saved = spans(rec.marks, lastMark()).filter((s) => s.keep).reduce((a, s) => a + (s.b - s.a), 0);
-  return { t: nowT(), saved, pending: nowT() - lastMark(), takes: rec.marks.filter((m) => m.keep).length };
+  const now = nowT(), P = (a, b) => pausedIn(rec.pauses, a, b, now);
+  const saved = spans(rec.marks, lastMark()).filter((s) => s.keep).reduce((a, s) => a + (s.b - s.a) - P(s.a, s.b), 0);
+  return { t: now - P(0, now), saved, pending: now - lastMark() - P(lastMark(), now), takes: rec.marks.filter((m) => m.keep).length, paused: isPaused() };
+}
+const isPaused = () => !!rec?.pauses.length && rec.pauses.at(-1)[1] === Infinity;
+// La pausa no detiene ffmpeg (así no hay saltos al reanudar): lo grabado en pausa se descarta al unir.
+function togglePause() {
+  if (!rec || rec.stopping) return;
+  if (isPaused()) rec.pauses.at(-1)[1] = nowT();
+  else rec.pauses.push([nowT(), Infinity]);
+  send('rec-time', recState());
 }
 function readSegments(r) {
   try {
@@ -148,7 +162,7 @@ function mark(keep) {
   if (!keep) {
     // lo descartado se borra ya del disco
     const sp = spans(rec.marks, t);
-    for (const s of readSegments(rec)) if (s.b <= t && !keepSeg(sp, s)) fs.rm(s.file, { force: true }, () => {});
+    for (const s of readSegments(rec)) if (s.b <= t && !keepSeg(sp, s, rec.pauses)) fs.rm(s.file, { force: true }, () => {});
   }
   send('rec-time', recState());
   send('mark', { keep });
@@ -158,6 +172,7 @@ function stopRecording() {
   if (!rec || rec.stopping) return;
   rec.stopping = true;
   rec.end = nowT();
+  if (isPaused()) rec.pauses.at(-1)[1] = rec.end;
   send('rec-state', { recording: false, busy: true });
   try { rec.ff.stdin.write('q'); } catch { rec.ff.kill(); }
 }
@@ -167,9 +182,10 @@ async function finish(r, code, err) {
   r.server?.close();
   rec = null;
   const sp = spans(r.marks, Infinity);
-  const segs = readSegments(r).filter((s) => keepSeg(sp, s) && fs.existsSync(s.file));
+  const segs = readSegments(r).filter((s) => keepSeg(sp, s, r.pauses) && fs.existsSync(s.file));
   if (!segs.length) {
     fs.rmSync(r.tmp, { recursive: true, force: true });
+    if (r.noFrames) return send('rec-done', { error: 'Esa ventana no está enviando imagen. Ábrela (que no esté minimizada) o graba la pantalla.' });
     return send('rec-done', code === 0 || r.stopping ? { empty: true } : { error: err.trim().split('\n').pop() || 'ffmpeg se cerró' });
   }
   const p2 = (n) => String(n).padStart(2, '0'), d = r.stamp;
@@ -209,6 +225,7 @@ const handlers = {
   'rec:start': (o) => startRecording(o),
   'rec:stop': () => stopRecording(),
   'rec:mark': (keep) => mark(keep),
+  'rec:pause': () => togglePause(),
   'folder:pick': async () => {
     const r = await dialog.showOpenDialog(win, { properties: ['openDirectory', 'createDirectory'], defaultPath: settings.folder });
     if (r.canceled) return null;
@@ -227,7 +244,7 @@ app.whenReady().then(() => {
   loadSettings();
   startHooks();
   win = new BrowserWindow({
-    width: 1100, height: 720, minWidth: 900, minHeight: 600, backgroundColor: '#121016', title: 'VidRecorder OS', autoHideMenuBar: true,
+    width: 1100, height: 800, minWidth: 900, minHeight: 640, backgroundColor: '#121016', title: 'VidRecorder OS', autoHideMenuBar: true,
     icon: path.join(__dirname, 'build', 'icon.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, backgroundThrottling: false },
   });
