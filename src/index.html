@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es" data-theme="cozy-night">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; media-src 'self' blob: mediastream:; style-src 'self' 'unsafe-inline'; font-src 'self'">
+  <title>VidRecorder OS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="brand"><span class="dot"></span><b>VidRecorder</b><small>OS</small></div>
+    <div class="themes" title="Tema">
+      <button data-theme="cozy-night" title="Cozy Night"></button>
+      <button data-theme="cozy-day" title="Cozy Day"></button>
+      <button data-theme="midnight" title="Midnight"></button>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel opts">
+      <div class="group">
+        <h3>Qué grabar</h3>
+        <div class="row"><select id="source"></select><button class="ghost sm" id="refresh" title="Actualizar lista">↻</button></div>
+      </div>
+
+      <div class="group">
+        <h3>Sonido</h3>
+        <div class="seg" id="sound">
+          <button data-v="none">Nada</button>
+          <button data-v="desktop">Escritorio</button>
+          <button data-v="app" id="soundApp">Solo la app</button>
+        </div>
+        <label class="field"><span>Micrófono</span><span class="toggle"><input type="checkbox" id="mic"><i></i></span></label>
+      </div>
+
+      <div class="group">
+        <h3>FPS</h3>
+        <div class="seg" id="fps">
+          <button data-v="30">30</button><button data-v="60">60</button><button data-v="120">120</button>
+          <button data-v="144">144</button><button data-v="165">165</button><button data-v="240">240</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3>Atajos <small>teclado o ratón, funcionan dentro de juegos</small></h3>
+        <div class="key"><span>Guardar lo grabado</span><button class="ghost sm" data-key="commit"></button></div>
+        <div class="key"><span>Borrar lo no guardado</span><button class="ghost sm" data-key="discard"></button></div>
+        <div class="key"><span>Empezar / detener</span><button class="ghost sm" data-key="toggle"></button></div>
+      </div>
+
+      <div class="group">
+        <h3>Carpeta</h3>
+        <code id="folder"></code>
+        <div class="row"><button class="ghost sm" id="pickFolder">Cambiar…</button><button class="ghost sm" id="openFolder">Abrir carpeta</button></div>
+      </div>
+    </section>
+
+    <section class="panel stage">
+      <div class="preview" id="previewBox">
+        <video id="preview" muted></video>
+        <div class="preview-off" id="previewOff">Vista previa apagada</div>
+        <label class="pv-toggle" title="Apágala para que vaya más fluido"><span>Vista previa</span><span class="toggle"><input type="checkbox" id="previewOn"><i></i></span></label>
+      </div>
+      <div class="controls">
+        <button class="rec-btn" id="recBtn" title="Grabar"><span></span></button>
+        <div class="status">
+          <div class="timer" id="timer">00:00</div>
+          <div class="info" id="info">Listo</div>
+          <div class="bar"><i id="barSaved"></i><i id="barPending"></i></div>
+        </div>
+        <div class="tips">
+          <div class="kb"><kbd id="kCommit"></kbd><span>guarda</span></div>
+          <div class="kb"><kbd id="kDiscard"></kbd><span>borra lo no guardado</span></div>
+        </div>
+      </div>
+      <div class="result" id="result" hidden></div>
+    </section>
+  </main>
+
+  <div id="toasts"></div>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+{
+  "name": "vidrecorder-os",
+  "productName": "VidRecorder OS",
+  "version": "1.0.0",
+  "main": "main.js",
+  "private": true,
+  "devDependencies": {
+    "electron": "^44.7.2",
+    "electron-builder": "^26.15.3"
+  },
+  "description": "Grabador de pantalla y aplicaciones con tomas: un botón guarda lo grabado y otro borra lo no guardado",
+  "author": "cristiancordova1207",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "helper": "node helper/build.js",
+    "test": "node takes.js",
+    "dist": "npm run helper && electron-builder --win nsis --publish never"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cristiancordova1207/VidRecorder-OS.git"
+  },
+  "build": {
+    "appId": "com.cristiancordova.vidrecorder",
+    "productName": "VidRecorder OS",
+    "files": [
+      "main.js",
+      "preload.js",
+      "takes.js",
+      "src/**/*",
+      "build/icon.png"
+    ],
+    "extraResources": [
+      {
+        "from": "helper/VrHelper.exe",
+        "to": "helper/VrHelper.exe"
+      },
+      {
+        "from": "explorer-tab.ps1",
+        "to": "explorer-tab.ps1"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "VidRecorder OS",
+      "artifactName": "VidRecorder-OS-Setup-${version}.${ext}"
+    }
+  }
+}
