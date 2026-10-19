@@ -184,6 +184,7 @@ api.onDone((r) => {
   box.innerHTML = '<span>🎬</span><b></b><button class="ghost sm">Mostrar en carpeta</button>';
   $('b', box).textContent = `${r.file.split('\\').pop()} · ${fmt(r.seconds)}`;
   $('button', box).onclick = () => api.openFolder(r.file);
+  $('button', box).dataset.file = r.file;
   $('#info').textContent = 'Listo';
 });
 api.onNotice((m) => toast(m, true));

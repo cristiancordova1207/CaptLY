@@ -2,7 +2,7 @@
 <html lang="es" data-theme="cozy-night">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; media-src 'self' blob: mediastream:; style-src 'self' 'unsafe-inline'; font-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: file:; media-src 'self' blob: mediastream: file:; style-src 'self' 'unsafe-inline'; font-src 'self'">
   <title>CaptLY</title>
   <link rel="stylesheet" href="themes.css">
   <link rel="stylesheet" href="style.css">
@@ -10,10 +10,11 @@
 <body>
   <header>
     <div class="brand"><img class="logo" src="logo.png" alt=""><b>CaptLY</b><span class="dot"></span></div>
+    <nav class="tabs" id="tabs"><span class="tabs-pill"></span><button data-tab="rec" class="on">🎬 Grabar</button><button data-tab="edit">✂ Editar</button></nav>
     <div class="head-right"><button class="donate" id="donateBtn" title="Apoyar el proyecto">💜 Apoyar</button><div id="themes"></div></div>
   </header>
 
-  <main>
+  <main id="recView">
     <section class="panel opts">
       <div class="group">
         <h3>Qué grabar</h3>
@@ -76,9 +77,45 @@
     </section>
   </main>
 
+  <main id="editView" class="ev" hidden>
+    <div class="ev-top">
+      <div class="ev-title"><b id="evName">Editor de vídeo</b><small id="evMeta">Graba algo y pulsa ✂ Editar, o abre un vídeo</small></div>
+      <div class="row">
+        <button class="ghost sm" id="evOpen">📂 Abrir vídeo…</button>
+        <button class="ghost sm" id="evUndo" title="Deshacer (Ctrl+Z)">↶</button>
+        <button class="ghost sm" id="evRedo" title="Rehacer (Ctrl+Shift+Z)">↷</button>
+        <button class="ghost sm" id="evPremiere" title="Crea un .xml que Premiere Pro importa como secuencia con tus cortes, volumen y fades (sin renderizar)">⇪ Exportar a Premiere</button>
+        <button class="btn-main sm" id="evRender" title="Crea un MP4 nuevo con tus cortes, fades y volumen">⬇ Exportar MP4</button>
+      </div>
+    </div>
+    <div class="ev-empty" id="evEmpty"><div><b>🎬 Aún no hay vídeo</b><p>Cuando termines una grabación pulsa <b>✂ Editar</b>, o abre un vídeo con <b>📂 Abrir vídeo…</b></p></div></div>
+    <div class="ev-body" id="evBody" hidden>
+      <div class="ev-preview"><video id="evVideo" preload="auto"></video>
+        <div class="ev-progress" id="evProg" hidden><b>Exportando…</b><div class="bar"><i></i></div><span>0 %</span></div>
+      </div>
+      <div class="ev-bar">
+        <button class="ev-play" id="evPlay" title="Reproducir (Espacio)">▶</button>
+        <span class="ev-time" id="evTime">00:00.00 / 00:00.00</span>
+        <div class="vol-box" title="Sube o baja el volumen del audio. Con un clip seleccionado cambia solo ese clip.">
+          <span class="vol-ico">🔊</span>
+          <div><b>Volumen del audio</b><small id="evVolTarget">todos los clips</small></div>
+          <input type="range" id="evVol" min="-24" max="12" step="0.5" value="0">
+          <span class="vol-val" id="evVolVal">0 dB</span>
+          <button class="ghost sm" id="evVolReset" title="Volver a 0 dB">↺</button>
+        </div>
+        <div class="grow"></div>
+        <label class="zoom">Zoom <input type="range" id="evZoom" min="0" max="100" value="30"></label>
+        <button class="ghost sm" id="evFit">Ajustar</button>
+      </div>
+      <div class="ev-tl" id="evTl"><div class="tl-spacer" id="evSpacer"></div><canvas id="evCanvas"></canvas></div>
+      <div class="ev-keys" id="evKeys"></div>
+    </div>
+  </main>
+
   <div id="toasts"></div>
   <script src="themes.js"></script>
   <script src="support.js"></script>
   <script src="app.js"></script>
+  <script src="editor.js"></script>
 </body>
 </html>

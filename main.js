@@ -261,6 +261,7 @@ const handlers = {
   },
 };
 for (const [ch, fn] of Object.entries(handlers)) ipcMain.handle(ch, (_e, ...a) => fn(...a));
+require('./editor-main').register(ipcMain, { getWin: () => win, getTools: () => tools || detectTools(), getFolder: () => settings.folder, send });
 
 app.whenReady().then(() => {
   loadSettings();
